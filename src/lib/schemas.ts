@@ -130,3 +130,4 @@ export const UserPreferencesSchema = z.object({
   reducedMotion: z.boolean().default(false),
   highContrast: z.boolean().default(false),
 });
+

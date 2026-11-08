@@ -200,3 +200,4 @@ export const SUBJECT_PALETTE = [
 export function getRandomSubjectColor(index: number = 0): string {
   return SUBJECT_PALETTE[index % SUBJECT_PALETTE.length];
 }
+

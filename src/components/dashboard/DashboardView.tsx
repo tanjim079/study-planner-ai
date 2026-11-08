@@ -345,3 +345,4 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
     </div>
   );
 }
+

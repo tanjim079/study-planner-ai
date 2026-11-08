@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import {
   Calendar as CalendarIcon,
@@ -9,9 +11,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   RotateCcw,
+  Download,
 } from 'lucide-react';
 import { useStudy } from '@/context/StudyContext';
 import { formatDate, formatMinutes, getTodayIso } from '@/lib/utils';
+import { downloadIcsFile } from '@/lib/calendarExport';
 import { Button } from '../common/Button';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { TabType } from '../layout/Sidebar';
@@ -81,7 +85,7 @@ export function ScheduleView({ onNavigateToPlanner, onNavigateToSubjects }: Sche
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* View toggle (Daily vs Weekly) */}
           <div
             role="group"
@@ -113,6 +117,16 @@ export function ScheduleView({ onNavigateToPlanner, onNavigateToSubjects }: Sche
               Weekly ({days.length} Days)
             </button>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Download className="h-3.5 w-3.5" />}
+            onClick={() => downloadIcsFile(activePlan)}
+            aria-label="Export schedule to calendar"
+          >
+            Export (.ics)
+          </Button>
 
           <Button
             variant="outline"

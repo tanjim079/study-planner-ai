@@ -44,3 +44,4 @@ Designing for WCAG 2.1 AA revealed that accessibility is an architectural consid
   1. Integrating calendar export (`.ics` / Google Calendar sync).
   2. Spaced repetition interval calculators based on the SuperMemo-2 (SM-2) algorithm.
   3. Interactive study timer (Pomodoro mode) directly linked to scheduled session tasks.
+

@@ -195,3 +195,4 @@ export function ProgressView({ onNavigateToSchedule, onNavigateToPlanner }: Prog
     </div>
   );
 }
+

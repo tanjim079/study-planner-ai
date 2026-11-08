@@ -105,3 +105,4 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
 Developing StudyFlow AI demonstrated the vital importance of software engineering fundamentals when integrating modern generative AI into product workflows. While an LLM can formulate creative study strategies and contextual explanations, it cannot be trusted to independently enforce hard constraints such as time arithmetic and deadline cutoffs. Implementing strict server-side Zod validation alongside a deterministic algorithmic scheduler transformed a speculative AI demo into a dependable, production-grade utility that university students can genuinely rely upon.
 
 *[Developer Observation Placeholder: Insert reflections on personal learning milestones, Next.js App Router insights, and UI testing experiences during the capstone project.]*
+

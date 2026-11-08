@@ -103,3 +103,4 @@ describe('Storage Persistence & Versioning', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 });
+

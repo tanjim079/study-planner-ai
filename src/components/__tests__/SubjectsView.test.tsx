@@ -30,3 +30,4 @@ describe('SubjectsView Component', () => {
     expect(screen.getByText('Add New Subject')).toBeInTheDocument();
   });
 });
+

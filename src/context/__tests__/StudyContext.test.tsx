@@ -124,3 +124,4 @@ describe('StudyContext State Management', () => {
     expect(result.current.preferences.theme).toBe('dark');
   });
 });
+

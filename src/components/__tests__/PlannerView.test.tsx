@@ -22,3 +22,4 @@ describe('PlannerView Component', () => {
     expect(handleNavigate).toHaveBeenCalled();
   });
 });
+

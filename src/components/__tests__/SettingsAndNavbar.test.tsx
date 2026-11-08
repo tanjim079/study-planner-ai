@@ -36,3 +36,4 @@ describe('Navbar Component', () => {
     expect(screen.getByRole('button', { name: 'Generate Plan' })).toBeInTheDocument();
   });
 });
+

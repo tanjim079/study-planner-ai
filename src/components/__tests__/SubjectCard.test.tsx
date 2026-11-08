@@ -79,3 +79,4 @@ describe('SubjectCard Component', () => {
     expect(handleDelete).toHaveBeenCalledWith('sub-1');
   });
 });
+

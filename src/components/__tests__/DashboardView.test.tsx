@@ -31,3 +31,4 @@ describe('DashboardView Component', () => {
     expect(handleNavigate).toHaveBeenCalledWith('subjects');
   });
 });
+

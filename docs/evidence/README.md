@@ -78,3 +78,4 @@ Target and measured scores on production build:
 - **Server-Side Rate Limiter**: Rate limiter restricts abuse to 15 requests per minute per IP.
 - **Payload Boundaries**: Requests exceeding 100KB are rejected with HTTP 413.
 - **Safe Fallback**: When an external API key is omitted, the application transparently serves high-fidelity deterministic plans rather than crashing or showing unhelpful errors.
+

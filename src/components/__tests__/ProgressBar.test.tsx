@@ -34,3 +34,4 @@ describe('ProgressBar Component', () => {
     expect(screen.getByText('Hidden %')).toBeInTheDocument();
   });
 });
+

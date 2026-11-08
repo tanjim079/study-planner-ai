@@ -125,3 +125,4 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
 - **Client Sanitization**: Error messages returned to users strip stack traces and internal provider details.
 - **Data Minimization**: Study plans and course data reside solely in the user's browser `localStorage`. No personal academic information is stored in external databases.
 - **Health Probing**: The `/api/health` route verifies backend status and provider configuration without revealing credential values.
+

@@ -382,3 +382,4 @@ export function PlannerView({ onNavigateToSchedule, onNavigateToSubjects }: Plan
     </div>
   );
 }
+

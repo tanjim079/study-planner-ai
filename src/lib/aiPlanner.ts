@@ -236,3 +236,4 @@ JSON Schema format required:
 
   return businessCheck.sanitizedPlan;
 }
+

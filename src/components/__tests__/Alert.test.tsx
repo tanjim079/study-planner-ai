@@ -40,3 +40,4 @@ describe('Alert Component', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 });
+

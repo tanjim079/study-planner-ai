@@ -34,3 +34,4 @@ describe('ProgressView Component', () => {
     expect(screen.getByText('No Study Progress Data Available')).toBeInTheDocument();
   });
 });
+

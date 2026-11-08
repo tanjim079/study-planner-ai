@@ -126,3 +126,4 @@ export function SubjectCard({ subject, onEdit, onDelete }: SubjectCardProps) {
     </div>
   );
 }
+

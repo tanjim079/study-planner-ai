@@ -110,3 +110,4 @@ vercel rollback <deployment-url-or-id>
 
 - **Privacy-Safe Logging**: Server-side errors log high-level request failure reasons without logging API tokens, prompts, or student private study topics.
 - **Graceful Fallback Mode**: If Anthropic API returns a `429 Rate Limit` or timeout, the server automatically produces an algorithmic fallback plan and informs the student transparently.
+
