@@ -184,16 +184,16 @@ The scheduler chunks topics according to the student's preferred session length,
 
 Vitest and React Testing Library test results:
 ```
-Test Files: 16 passed (16)
-Tests:      60 passed (60)
+Test Files: 17 passed (17)
+Tests:      61 passed (61)
 Pass Rate:  100%
 ```
 
 ### Coverage (V8 Engine):
-- **Statements**: **75.58%** (Threshold: 50%)
-- **Lines**: **75.58%** (Threshold: 50%)
-- **Branches**: **68.93%** (Threshold: 50%)
-- **Functions**: **50.44%** (Threshold: 50%)
+- **Statements**: **75.90%** (Threshold: 50%)
+- **Lines**: **75.90%** (Threshold: 50%)
+- **Branches**: **68.82%** (Threshold: 50%)
+- **Functions**: **50.84%** (Threshold: 50%)
 
 ---
 
