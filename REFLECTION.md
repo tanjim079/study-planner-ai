@@ -14,6 +14,9 @@ Relying solely on external AI APIs makes an application fragile when keys are ab
 
 **Solution**: We designed and unit-tested an independent **Deterministic Fallback Planner**. Using a weighted scoring heuristic combining urgency factors (proximity to deadlines), difficulty multipliers, and user priority levels, the fallback engine breaks topics into session chunks and distributes them across available days without exceeding daily study hours. This ensures students always receive an actionable schedule regardless of external API availability.
 
+### Challenge 3: Provider Migration & Adapter Decoupling (Claude to Google Gemini)
+When transitioning the primary LLM provider from Anthropic Claude to Google Gemini due to API quota constraints, the clean separation of concerns proved decisive. Because model outputs were validated against runtime Zod schemas rather than proprietary SDK formats, migrating to Google's official `@google/genai` SDK and Gemini 2.5 Flash (`gemini-2.5-flash`) required zero changes to client components, state managers, or study business logic. Google Gemini's native `responseSchema` was configured to mirror our domain schema, resulting in faster inference times and zero-downtime provider portability.
+
 ---
 
 ## 2. Key Architectural Trade-Offs

@@ -77,7 +77,7 @@ export function PlannerView({ onNavigateToSchedule, onNavigateToSubjects }: Plan
 
     if (result) {
       if (result.isAiGenerated) {
-        setGenerationNotice('Personalized AI study plan generated successfully by Claude!');
+        setGenerationNotice('Personalized AI study plan generated successfully by Gemini!');
       } else {
         setGenerationNotice(
           'Structured study plan generated using our deterministic algorithmic scheduler.'
@@ -321,7 +321,7 @@ export function PlannerView({ onNavigateToSchedule, onNavigateToSubjects }: Plan
                 Generate Basic Plan
               </Button>
 
-              {/* Claude AI Generator Button */}
+              {/* Gemini AI Generator Button */}
               <Button
                 type="button"
                 variant="primary"
@@ -344,7 +344,7 @@ export function PlannerView({ onNavigateToSchedule, onNavigateToSubjects }: Plan
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300 mb-2">
-                {activePlan.isAiGenerated ? 'Claude AI Schedule' : 'Algorithmic Basic Plan'}
+                {activePlan.isAiGenerated ? 'Gemini AI Schedule' : 'Algorithmic Basic Plan'}
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {activePlan.planTitle}

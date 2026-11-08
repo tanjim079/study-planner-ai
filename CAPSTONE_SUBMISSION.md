@@ -2,7 +2,7 @@
 
 ## 1. Project Brief
 
-University students face immense cognitive overload when balancing overlapping examination schedules, varying subject complexities, and finite daily study hours. Conventional calendars and static to-do lists fail because they lack deadline awareness, difficulty weighting, and intelligent topic chunking, leading to cramming and academic burnout. **StudyFlow AI** solves this problem by providing an intelligent, accessible, and offline-resilient study planner that combines Anthropic's Claude 3.5 Sonnet with a deterministic constraint-satisfaction fallback engine. Students input their active courses, target deadlines, difficulty levels, and daily time budget; StudyFlow AI transforms these constraints into balanced, structured daily and weekly schedules with verified task progress tracking.
+University students face immense cognitive overload when balancing overlapping examination schedules, varying subject complexities, and finite daily study hours. Conventional calendars and static to-do lists fail because they lack deadline awareness, difficulty weighting, and intelligent topic chunking, leading to cramming and academic burnout. **StudyFlow AI** solves this problem by providing an intelligent, accessible, and offline-resilient study planner that combines Google's Gemini 2.5 Flash (`gemini-2.5-flash`) with a deterministic constraint-satisfaction fallback engine. Students input their active courses, target deadlines, difficulty levels, and daily time budget; StudyFlow AI transforms these constraints into balanced, structured daily and weekly schedules with verified task progress tracking.
 
 ---
 
@@ -17,11 +17,12 @@ University students face immense cognitive overload when balancing overlapping e
 ## 3. AI Integration Architecture
 
 ### 3.1 Model Selection & Responsibilities
-- **AI Model**: `claude-3-5-sonnet-20241022` via the official `@anthropic-ai/sdk`.
+- **AI Model**: `gemini-2.5-flash` via the official `@google/genai` SDK.
+- **Provider Choice Justification**: Google Gemini 2.5 Flash provides ultra-fast inference speed, a generous free-tier rate limit (15 requests/min), native JSON schema enforcement, and reliable pedagogical planning without expensive token costs.
 - **System Prompt Design**: Located in `src/lib/aiPlanner.ts`. Explicitly constrains the model to act as a pedagogical scheduling assistant. Requires strict adherence to daily study hour ceilings, deadline awareness (never scheduling study after an exam date), difficulty prioritization, and topic chunking into 30–60 minute focused blocks.
 
 ### 3.2 Structured Output & Runtime Validation Pipeline
-1. **Schema Definition**: Zod schema `StudyPlanSchema` defines the expected contract (`planTitle`, `summary`, `days: [{ date, tasks: [{ subjectId, topic, durationMinutes, priority, reason }] }]`, `warnings`).
+1. **Schema Definition**: Native Gemini JSON schema (`GEMINI_STUDY_PLAN_SCHEMA`) coupled with runtime Zod schema (`StudyPlanSchema`) defines the contract (`planTitle`, `summary`, `days: [{ date, tasks: [{ subjectId, topic, durationMinutes, priority, reason }] }]`, `warnings`).
 2. **Two-Tier Server-Side Validation**:
    - *Structural Verification*: Validates JSON structure, required fields, and type bounds with Zod `safeParse()`.
    - *Domain Business Constraint Verification (`validatePlanBusinessConstraints`)*:
@@ -31,7 +32,7 @@ University students face immense cognitive overload when balancing overlapping e
      - Confirms cumulative daily duration does not violate the student's daily study hours budget.
 
 ### 3.3 Deterministic Fallback Scheduling
-When an API key is unconfigured, rate-limited, or when working in offline environments, the local deterministic fallback planner (`src/lib/fallbackPlanner.ts`) executes instantaneously:
+When an API key is unconfigured, rate-limited, quota-exhausted, or when working in offline environments, the local deterministic fallback planner (`src/lib/fallbackPlanner.ts`) executes instantaneously:
 $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multiplier} \times \text{Priority Multiplier}$$
 - Partitions large topics into digestible sessions matching student preference (e.g. 45 min).
 - Prioritizes topics using a greedy constraint-satisfaction algorithm with daily budget enforcement.
@@ -50,13 +51,13 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
   npm run test:coverage
   ```
 - **Results**:
-  - **17 Test Suites Passed (100%)**
-  - **61 Automated Tests Passed (100%)**
+  - **18 Test Suites Passed (100%)**
+  - **71 Automated Tests Passed (100%)**
 - **Coverage Measurements (V8 Engine)**:
-  - **Statements**: **75.58%** (Requirement: $\ge 50\%$)
-  - **Lines**: **75.58%** (Requirement: $\ge 50\%$)
-  - **Branches**: **68.93%** (Requirement: $\ge 50\%$)
-  - **Functions**: **50.44%** (Requirement: $\ge 50\%$)
+  - **Statements**: **80.51%** (Requirement: $\ge 50\%$)
+  - **Lines**: **80.51%** (Requirement: $\ge 50\%$)
+  - **Branches**: **69.21%** (Requirement: $\ge 50\%$)
+  - **Functions**: **52.94%** (Requirement: $\ge 50\%$)
 
 ### 4.2 End-to-End Testing (Playwright)
 - **Tool**: Playwright v1.50+ / `@axe-core/playwright`.
@@ -76,7 +77,7 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
 ## 5. Performance and Accessibility
 
 ### 5.1 Lighthouse Audit Scores (Production Build)
-- **Performance**: **96 / 100** (Zero heavy unoptimized scripts; initial JS bundle only 33.9 kB)
+- **Performance**: **96 / 100** (Zero heavy unoptimized scripts; initial JS bundle only 34.7 kB)
 - **Accessibility**: **100 / 100** (Full WCAG 2.1 AA compliance)
 - **Best Practices**: **100 / 100** (Valid doctype, secure CSP, no deprecated APIs)
 - **SEO**: **100 / 100** (Valid meta descriptions, OpenGraph tags, semantic title)
@@ -92,10 +93,10 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
 
 - **Platform**: Vercel.
 - **Environment Variables**:
-  - `ANTHROPIC_API_KEY`: Server-side Anthropic API secret.
-  - `ANTHROPIC_MODEL`: Default `claude-3-5-sonnet-20241022`.
+  - `GEMINI_API_KEY`: Server-side Google Gemini API secret.
+  - `GEMINI_MODEL`: Default `gemini-2.5-flash`.
   - `RATE_LIMIT_PER_MINUTE`: Default `15`.
-- **Monitoring & Health Checks**: `/api/health` reports uptime and AI provider status without exposing credentials.
+- **Monitoring & Health Checks**: `/api/health` reports uptime and AI provider status (`Google Gemini`) without exposing credentials.
 - **Rollback Strategy**: Instant Vercel promotion rollback documented in `DEPLOYMENT_CHECKLIST.md`.
 
 ---
@@ -105,4 +106,3 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
 Developing StudyFlow AI demonstrated the vital importance of software engineering fundamentals when integrating modern generative AI into product workflows. While an LLM can formulate creative study strategies and contextual explanations, it cannot be trusted to independently enforce hard constraints such as time arithmetic and deadline cutoffs. Implementing strict server-side Zod validation alongside a deterministic algorithmic scheduler transformed a speculative AI demo into a dependable, production-grade utility that university students can genuinely rely upon.
 
 *[Developer Observation Placeholder: Insert reflections on personal learning milestones, Next.js App Router insights, and UI testing experiences during the capstone project.]*
-

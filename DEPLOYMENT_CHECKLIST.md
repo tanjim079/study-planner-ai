@@ -5,10 +5,10 @@
 Before deploying StudyFlow AI to production (Vercel or custom Node.js environment), confirm all quality gates pass:
 
 - [x] **TypeScript Strict Compilation**: `npm run typecheck` (`tsc --noEmit`) passes with 0 errors.
-- [x] **Unit & Component Testing**: `npm run test` passes (60+ tests passing, 100% pass rate).
-- [x] **Code Coverage Verification**: `npm run test:coverage` satisfies thresholds (statements $\ge 75\%$, lines $\ge 75\%$, branches $\ge 68\%$, functions $\ge 50\%$).
+- [x] **Unit & Component Testing**: `npm run test` passes (18 test suites, 71 tests passing, 100% pass rate).
+- [x] **Code Coverage Verification**: `npm run test:coverage` satisfies thresholds (statements $\ge 80\%$, lines $\ge 80\%$, branches $\ge 69\%$, functions $\ge 52\%$).
 - [x] **Production Bundle Build**: `npm run build` succeeds without compiler warnings or EPERM issues.
-- [x] **Client Bundle Secret Audit**: Verified that `ANTHROPIC_API_KEY` is referenced solely in `src/app/api/` and never included in client-side bundles.
+- [x] **Client Bundle Secret Audit**: Verified that `GEMINI_API_KEY` is referenced solely in `src/app/api/` and never included in client-side bundles.
 - [x] **Accessibility Gate (WCAG 2.1 AA)**: Tested via `axe-core` with 0 critical/serious violations.
 - [x] **Responsive Layouts**: Desktop, tablet, and mobile views tested with collapsible navigation and accessible touch targets.
 
@@ -20,8 +20,8 @@ Set the following variables in the Vercel Project Settings (**Settings > Environ
 
 | Variable Name | Environment | Description | Example / Default |
 | :--- | :--- | :--- | :--- |
-| `ANTHROPIC_API_KEY` | Production, Preview | Anthropic Claude API key for AI generation | `sk-ant-api03-...` |
-| `ANTHROPIC_MODEL` | Production, Preview | Claude model identifier | `claude-3-5-sonnet-20241022` |
+| `GEMINI_API_KEY` | Production, Preview | Google Gemini API key for AI generation | `AIzaSy...` |
+| `GEMINI_MODEL` | Production, Preview | Gemini model identifier | `gemini-2.5-flash` |
 | `RATE_LIMIT_PER_MINUTE`| Production | Max API requests per IP window | `15` |
 | `NODE_ENV` | Production | Runtime environment indicator | `production` |
 
@@ -42,7 +42,8 @@ Set the following variables in the Vercel Project Settings (**Settings > Environ
    ```
 3. Set your production environment variables:
    ```bash
-   vercel env add ANTHROPIC_API_KEY production
+   vercel env add GEMINI_API_KEY production
+   vercel env add GEMINI_MODEL production
    ```
 4. Trigger a production build:
    ```bash
@@ -53,13 +54,15 @@ Set the following variables in the Vercel Project Settings (**Settings > Environ
 1. Push your repository to GitHub:
    ```bash
    git add .
-   git commit -m "feat: complete StudyFlow AI production implementation"
+   git commit -m "feat: migrate AI integration to Google Gemini 2.5 Flash"
    git push origin main
    ```
 2. Log in to [Vercel Dashboard](https://vercel.com).
 3. Click **Add New Project** and import the GitHub repository.
 4. Select **Next.js** framework preset.
-5. In **Environment Variables**, add `ANTHROPIC_API_KEY`.
+5. In **Environment Variables**, add:
+   - `GEMINI_API_KEY`: *(Your Google AI Studio key)*
+   - `GEMINI_MODEL`: `gemini-2.5-flash`
 6. Click **Deploy**.
 
 ---
@@ -73,7 +76,11 @@ Set the following variables in the Vercel Project Settings (**Settings > Environ
    {
      "status": "healthy",
      "app": "StudyFlow AI",
-     "aiService": { "configured": true, "provider": "Anthropic" }
+     "aiService": {
+       "configured": true,
+       "provider": "Google Gemini",
+       "model": "gemini-2.5-flash"
+     }
    }
    ```
 2. **Subject Management Journey**:
@@ -81,9 +88,9 @@ Set the following variables in the Vercel Project Settings (**Settings > Environ
    - Edit the subject and verify update persists.
 3. **AI Planning Verification**:
    - Set 4 study hours/day and generate a 7-day schedule.
-   - Confirm Claude generates balanced tasks adhering to daily hour limits.
+   - Confirm Gemini generates balanced tasks adhering to daily hour limits with the "AI Plan" badge.
 4. **Offline Fallback Check**:
-   - Click "Generate Basic Plan" to verify the deterministic algorithm functions independently.
+   - Click "Generate Basic Plan" to verify the deterministic algorithm functions independently with the "Basic Plan" badge.
 5. **Persistence Across Reload**:
    - Check off a study task, refresh the browser, and confirm the checkbox state remains completed.
 
@@ -98,16 +105,3 @@ If an unexpected regression occurs in production:
 2. Identify the last known stable deployment.
 3. Click the three dots `...` next to the deployment and select **Promote to Production**.
 4. The rollback goes live immediately without rebuilding.
-
-### CLI Rollback
-```bash
-vercel rollback <deployment-url-or-id>
-```
-
----
-
-## 6. Monitoring & Error Handling Operations
-
-- **Privacy-Safe Logging**: Server-side errors log high-level request failure reasons without logging API tokens, prompts, or student private study topics.
-- **Graceful Fallback Mode**: If Anthropic API returns a `429 Rate Limit` or timeout, the server automatically produces an algorithmic fallback plan and informs the student transparently.
-

@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI, Type } from '@google/genai';
 import { PlanGenerationRequest, StudyPlan } from '@/types';
 import { StudyPlanSchema } from './schemas';
 import { generateId, getDaysRemaining } from './utils';
@@ -17,6 +17,80 @@ CORE SCHEDULING RULES:
 6. Spaced Repetition: Distribute topics across the planning days rather than cramming one subject all in one day.
 7. Capacity Warnings: If the total required study time exceeds total available hours across the planning window, prioritize the most urgent subjects and explicitly document unscheduled topics in the "warnings" array.
 8. Truthfulness: Never invent subjects or topics that were not provided in the student's request. Output valid JSON adhering strictly to the provided schema.`;
+
+/**
+ * Gemini JSON response schema definition for structured study plan output.
+ */
+export const GEMINI_STUDY_PLAN_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    planTitle: {
+      type: Type.STRING,
+      description: 'The overall title of the study plan, e.g. "Finals Sprint Study Plan"',
+    },
+    summary: {
+      type: Type.STRING,
+      description: 'A pedagogical summary explaining prioritization choices, focus areas, and how student constraints were balanced.',
+    },
+    days: {
+      type: Type.ARRAY,
+      description: 'The schedule of study days inside the planning horizon.',
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          date: {
+            type: Type.STRING,
+            description: 'ISO 8601 date string (YYYY-MM-DD)',
+          },
+          tasks: {
+            type: Type.ARRAY,
+            description: 'Study tasks allocated to this date',
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                subjectId: {
+                  type: Type.STRING,
+                  description: 'The exact ID of the subject this task belongs to',
+                },
+                subjectName: {
+                  type: Type.STRING,
+                  description: 'The human-readable name of the subject',
+                },
+                topic: {
+                  type: Type.STRING,
+                  description: 'The specific topic or concept being studied',
+                },
+                durationMinutes: {
+                  type: Type.INTEGER,
+                  description: 'Duration of the study session in minutes (15 to 180)',
+                },
+                priority: {
+                  type: Type.STRING,
+                  description: 'Priority level for this study session',
+                  enum: ['low', 'medium', 'high'],
+                },
+                reason: {
+                  type: Type.STRING,
+                  description: 'Pedagogical explanation for scheduling this topic on this date',
+                },
+              },
+              required: ['subjectId', 'subjectName', 'topic', 'durationMinutes', 'priority', 'reason'],
+            },
+          },
+        },
+        required: ['date', 'tasks'],
+      },
+    },
+    warnings: {
+      type: Type.ARRAY,
+      description: 'Any warnings regarding tight deadlines, overloaded schedules, or excluded topics',
+      items: {
+        type: Type.STRING,
+      },
+    },
+  },
+  required: ['planTitle', 'summary', 'days', 'warnings'],
+};
 
 /**
  * Validates domain and business constraints on model-generated or incoming plans.
@@ -105,17 +179,14 @@ export function validatePlanBusinessConstraints(
 }
 
 /**
- * Call Anthropic Claude API to generate a personalized study plan.
+ * Call Google Gemini API to generate a personalized study plan.
  */
 export async function generateAiStudyPlan(
   request: PlanGenerationRequest,
   apiKey: string,
-  modelName: string = 'claude-3-5-sonnet-20241022'
+  modelName: string = 'gemini-2.5-flash'
 ): Promise<StudyPlan> {
-  const anthropic = new Anthropic({
-    apiKey,
-    timeout: 35000, // 35s timeout
-  });
+  const ai = new GoogleGenAI({ apiKey });
 
   const promptContent = `
 Student Academic Profile & Planning Request:
@@ -140,50 +211,28 @@ ${s.topics.map((t) => `    - "${t.name}" (Est: ${t.estimatedMinutes} mins, ID: $
   .join('\n')}
 
 INSTRUCTIONS:
-Generate a structured study plan as a raw JSON object matching the following schema.
-Do NOT wrap your JSON in markdown fences (e.g. do not use \`\`\`json). Output pure JSON only.
-
-JSON Schema format required:
-{
-  "planTitle": "string",
-  "summary": "string explaining prioritization strategy and trade-offs",
-  "days": [
-    {
-      "date": "YYYY-MM-DD",
-      "tasks": [
-        {
-          "subjectId": "string (must match a provided Subject ID)",
-          "subjectName": "string",
-          "topic": "string",
-          "durationMinutes": number (integer, 15 to 120),
-          "priority": "low" | "medium" | "high",
-          "reason": "string explaining why this is scheduled here"
-        }
-      ]
-    }
-  ],
-  "warnings": ["string warning if time is tight or subjects cannot fit"]
-}
+Generate a structured study plan matching the required schema. Ensure strict adherence to the student's daily time budget and course deadlines.
 `;
 
-  const response = await anthropic.messages.create({
+  const response = await ai.models.generateContent({
     model: modelName,
-    max_tokens: 4000,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: promptContent,
+    contents: promptContent,
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+      responseMimeType: 'application/json',
+      responseSchema: GEMINI_STUDY_PLAN_SCHEMA,
+      httpOptions: {
+        timeout: 35000,
       },
-    ],
+    },
   });
 
-  const textBlock = response.content.find((c) => c.type === 'text');
-  if (!textBlock || !('text' in textBlock)) {
-    throw new Error('Claude returned an empty response.');
+  const rawText = response.text;
+  if (!rawText || !rawText.trim()) {
+    throw new Error('Gemini returned an empty response.');
   }
 
-  let rawJson = textBlock.text.trim();
+  let rawJson = rawText.trim();
   // Strip markdown code block wrappers if present
   if (rawJson.startsWith('```')) {
     rawJson = rawJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
@@ -236,4 +285,3 @@ JSON Schema format required:
 
   return businessCheck.sanitizedPlan;
 }
-

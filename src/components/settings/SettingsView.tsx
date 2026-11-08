@@ -50,7 +50,7 @@ export function SettingsView() {
         setHealthStatus({
           tested: true,
           healthy: true,
-          details: `App Healthy. AI Configured: ${data.aiService?.configured ? 'Yes (Claude)' : 'Offline (Fallback Mode)'}`,
+          details: `App Healthy. AI Configured: ${data.aiService?.configured ? 'Yes (Gemini)' : 'Offline (Fallback Mode)'}`,
         });
       } else {
         setHealthStatus({
@@ -215,7 +215,7 @@ export function SettingsView() {
               AI Service & System Health
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Live status of Anthropic Claude integration and offline fallback scheduler.
+              Live status of Google Gemini integration and offline fallback scheduler.
             </p>
           </div>
 
@@ -233,7 +233,7 @@ export function SettingsView() {
           <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
             <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="font-semibold text-slate-800 dark:text-slate-200">
-                Server-side Claude AI Status:
+                Server-side Gemini AI Status:
               </span>
               <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4" />
@@ -241,7 +241,7 @@ export function SettingsView() {
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              If an ANTHROPIC_API_KEY is configured in your server environment, Claude 3.5 Sonnet generates personalized pedagogical plans. If absent or during rate limits, the deterministic fallback planner generates schedules instantly.
+              If a GEMINI_API_KEY is configured in your server environment, Google Gemini (gemini-2.5-flash) generates personalized pedagogical plans. If absent or during rate limits, the deterministic fallback planner generates schedules instantly.
             </p>
           </div>
 

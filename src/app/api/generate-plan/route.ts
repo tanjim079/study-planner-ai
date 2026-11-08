@@ -87,27 +87,27 @@ export async function POST(request: NextRequest) {
     const planRequest = parseResult.data;
 
     // Check optional client-provided key or server environment key
-    const clientKey = request.headers.get('x-anthropic-key');
-    const apiKey = clientKey || process.env.ANTHROPIC_API_KEY;
-    const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
+    const clientKey = request.headers.get('x-gemini-key') || request.headers.get('x-api-key');
+    const apiKey = clientKey || process.env.GEMINI_API_KEY;
+    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
     // 4. Check if AI service is available
     if (!apiKey) {
       // Deterministic fallback plan generation
       const fallbackPlan = generateDeterministicPlan(planRequest);
       fallbackPlan.warnings.unshift(
-        'AI Planning Service is currently in offline mode (No ANTHROPIC_API_KEY configured). A high-accuracy algorithmic study plan was generated instead.'
+        'AI Planning Service is currently in offline mode (No GEMINI_API_KEY configured). A high-accuracy algorithmic study plan was generated instead.'
       );
 
       return NextResponse.json({
         success: true,
         plan: fallbackPlan,
         isAiGenerated: false,
-        notice: 'Generated via deterministic fallback scheduler because Anthropic API key is not configured.',
+        notice: 'Generated via deterministic fallback scheduler because Google Gemini API key is not configured.',
       });
     }
 
-    // 5. Generate plan using Claude AI
+    // 5. Generate plan using Google Gemini AI
     try {
       const aiPlan = await generateAiStudyPlan(planRequest, apiKey, model);
       return NextResponse.json({
@@ -117,12 +117,21 @@ export async function POST(request: NextRequest) {
       });
     } catch (aiError: unknown) {
       const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown AI error';
-      console.error('[StudyFlow API] AI Generation failed:', errorMessage);
+      console.error('[StudyFlow API] Gemini Generation failed:', errorMessage);
 
-      // Graceful fallback to deterministic planner if external AI fails (e.g. rate limit, network timeout)
+      // Graceful fallback to deterministic planner if external AI fails (e.g. rate limit, quota, network timeout, auth failure)
       const fallbackPlan = generateDeterministicPlan(planRequest);
+      const lower = errorMessage.toLowerCase();
+      const friendlyReason = lower.includes('timeout') || lower.includes('timed out')
+        ? 'Request timed out'
+        : lower.includes('429') || lower.includes('quota') || lower.includes('resource_exhausted')
+        ? 'API quota exhausted'
+        : lower.includes('401') || lower.includes('403') || lower.includes('api_key_invalid') || lower.includes('unauthorized')
+        ? 'API authentication failure'
+        : 'API service error';
+
       fallbackPlan.warnings.unshift(
-        `AI service was temporarily unavailable (${errorMessage.includes('timeout') ? 'Request timed out' : 'API service error'}). Generated reliable algorithmic fallback plan instead.`
+        `Gemini AI service was temporarily unavailable (${friendlyReason}). Generated reliable algorithmic fallback plan instead.`
       );
 
       return NextResponse.json({

@@ -2,7 +2,7 @@
 
 ## 1. System Overview
 
-**StudyFlow AI** is a production-ready, client-first academic scheduling application tailored for university students. It combines an LLM-powered planning engine with a deterministic constraint-satisfaction fallback to generate balanced, deadline-aware daily and weekly study roadmaps.
+**StudyFlow AI** is a production-ready, client-first academic scheduling application tailored for university students. It combines Google Gemini 2.5 Flash (`gemini-2.5-flash`) with a deterministic constraint-satisfaction fallback engine to generate balanced, deadline-aware daily and weekly study roadmaps.
 
 ```
 +-------------------------------------------------------------------------------+
@@ -18,6 +18,7 @@
 |  | Schedule View     |  | Progress View     |  | Settings & Backups        |  |
 |  | - Daily / Weekly  |  | - Logged hours    |  | - Dark / Light / Contrast |  |
 |  | - Task completion |  | - Completion %    |  | - JSON export / import   |  |
+|  | - .ics export     |  | - Subject stats   |  | - API Health diagnostics  |  |
 |  +-------------------+  +-------------------+  +---------------------------+  |
 |                                     |                                         |
 |                          StudyContext (React State)                           |
@@ -39,15 +40,16 @@
 |  | 1. IP Rate Limiter (15 req/min window)       |      | System status     |  |
 |  | 2. Payload size limiter (Max 100 KB)         |      | AI provider info  |  |
 |  | 3. Zod Schema Validation                     |      | Node environment  |  |
-|  | 4. Server-Side Secret (ANTHROPIC_API_KEY)    |      +-------------------+  |
-|  | 5. Claude 3.5 Sonnet Integration             |                             |
-|  | 6. Zod Runtime Response Validation           |                             |
-|  | 7. Business Constraint Verification          |                             |
+|  | 4. Server Secret (GEMINI_API_KEY)            |      +-------------------+  |
+|  | 5. Google GenAI SDK (gemini-2.5-flash)       |                             |
+|  | 6. Native Gemini JSON Schema                 |                             |
+|  | 7. Zod Runtime Response Validation           |                             |
+|  | 8. Business Constraint Verification          |                             |
 |  |    (Valid IDs, Date Windows, Capacity)       |                             |
 |  +----------------------------------------------+                             |
 |                         |                                                     |
 |                         v                                                     |
-|             Anthropic Claude Messages API                                     |
+|             Google Gemini API (gemini-2.5-flash)                              |
 +-------------------------------------------------------------------------------+
 ```
 
@@ -78,10 +80,10 @@
    - Enforces IP sliding-window rate limiting.
    - Enforces 100KB payload size boundaries.
    - Validates input payload with `PlanGenerationRequestSchema`.
-   - Accesses `ANTHROPIC_API_KEY` strictly in Node.js server runtime (never exposed to client bundles).
-3. **Claude LLM Prompt Execution**:
-   - System prompt instructs Claude as an academic scheduling assistant.
-   - Requires JSON structured responses adhering strictly to `StudyPlanSchema`.
+   - Accesses `GEMINI_API_KEY` strictly in Node.js server runtime (never exposed to client bundles).
+3. **Google Gemini LLM Prompt & Schema Execution**:
+   - System prompt instructs Gemini as an academic scheduling assistant.
+   - Gemini `responseSchema` enforces strict JSON structured responses.
 4. **Validation and Sanitation Pipeline**:
    - Step 1: JSON syntax verification.
    - Step 2: Zod runtime schema validation (`StudyPlanSchema`).
@@ -121,8 +123,7 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
 
 ## 4. Security & Privacy Architecture
 
-- **Zero Client Credential Exposure**: `ANTHROPIC_API_KEY` is loaded exclusively via server-side environment variables.
+- **Zero Client Credential Exposure**: `GEMINI_API_KEY` is loaded exclusively via server-side environment variables.
 - **Client Sanitization**: Error messages returned to users strip stack traces and internal provider details.
 - **Data Minimization**: Study plans and course data reside solely in the user's browser `localStorage`. No personal academic information is stored in external databases.
 - **Health Probing**: The `/api/health` route verifies backend status and provider configuration without revealing credential values.
-

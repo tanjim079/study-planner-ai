@@ -9,37 +9,40 @@ This directory contains verified audit evidence and technical testing artifacts 
 ### Test Runner: Vitest v2.1.9 with jsdom and React Testing Library
 
 ```
-Test Files  16 passed (16)
-Tests       60 passed (60)
-Duration    ~25 seconds
+Test Files  18 passed (18)
+Tests       71 passed (71)
+Duration    ~26 seconds
+Pass Rate   100%
 ```
 
 ### Coverage Report (v8)
 
 | Category | Coverage Measured | Assignment Threshold | Status |
 | :--- | :--- | :--- | :--- |
-| **Statements** | **75.58%** | 50.00% | **PASSED (+25.58%)** |
-| **Lines** | **75.58%** | 50.00% | **PASSED (+25.58%)** |
-| **Branches** | **68.93%** | 50.00% | **PASSED (+18.93%)** |
-| **Functions** | **50.44%** | 50.00% | **PASSED (+0.44%)** |
+| **Statements** | **80.51%** | 50.00% | **PASSED (+30.51%)** |
+| **Lines** | **80.51%** | 50.00% | **PASSED (+30.51%)** |
+| **Branches** | **69.21%** | 50.00% | **PASSED (+19.21%)** |
+| **Functions** | **52.94%** | 50.00% | **PASSED (+2.94%)** |
 
 ### Verified Test Suites:
-1. `src/lib/__tests__/schemas.test.ts`: Zod schema bounds, subject form inputs, duration boundaries.
-2. `src/lib/__tests__/fallbackPlanner.test.ts`: Priority calculation, chunking, daily limit enforcement, deadline compliance, capacity warnings.
-3. `src/lib/__tests__/storage.test.ts`: LocalStorage version 1 serialization, corrupt JSON recovery, JSON backup export/import.
-4. `src/lib/__tests__/aiConstraints.test.ts`: Business constraint validator, rejection of hallucinated subject IDs, prevention of post-deadline tasks.
-5. `src/context/__tests__/StudyContext.test.tsx`: Central state management, CRUD, task completion toggling, progress summaries.
-6. `src/components/__tests__/ProgressBar.test.tsx`: Progress bar rendering, ARIA attributes, clamping.
-7. `src/components/__tests__/SubjectCard.test.tsx`: Subject details, urgency badges, edit/delete callbacks.
-8. `src/components/__tests__/SubjectFormModal.test.tsx`: Form rendering, topic addition/removal, validation triggers, submission.
-9. `src/components/__tests__/Alert.test.tsx`: Role alerts, dismissible callback, type variants.
-10. `src/components/__tests__/ConfirmDialog.test.tsx`: Accessible destructive confirmation.
-11. `src/components/__tests__/DashboardView.test.tsx`: Empty state, stat metrics, task list.
-12. `src/components/__tests__/SubjectsView.test.tsx`: Subject listing, modal triggers, filtering.
-13. `src/components/__tests__/PlannerView.test.tsx`: Parameter configuration, budget calculations.
-14. `src/components/__tests__/ScheduleAndProgress.test.tsx`: Schedule empty state, progress empty state.
-15. `src/components/__tests__/SettingsAndNavbar.test.tsx`: Settings tabs, navbar branding, theme controls.
-16. `src/components/__tests__/SidebarAndMobileNav.test.tsx`: Sidebar navigation, collapsed mode, mobile navigation drawer.
+1. `src/lib/__tests__/geminiPlanner.test.ts`: **10 comprehensive tests** verifying Google Gemini API integration (successful structured output, empty response handling, unparseable JSON rejection, hallucinated subject ID sanitization, daily time-budget violation detection, API 401 authentication failure fallback, API 429 quota exhaustion fallback, provider timeout fallback, missing key fallback, and correct AI Plan vs Basic Plan labeling).
+2. `src/lib/__tests__/schemas.test.ts`: Zod schema bounds, subject form inputs, duration boundaries.
+3. `src/lib/__tests__/fallbackPlanner.test.ts`: Priority calculation, chunking, daily limit enforcement, deadline compliance, capacity warnings.
+4. `src/lib/__tests__/storage.test.ts`: LocalStorage version 1 serialization, corrupt JSON recovery, JSON backup export/import.
+5. `src/lib/__tests__/aiConstraints.test.ts`: Business constraint validator, rejection of hallucinated subject IDs, prevention of post-deadline tasks.
+6. `src/lib/__tests__/calendarExport.test.ts`: RFC 5545 iCalendar `.ics` file generation and task event mapping.
+7. `src/context/__tests__/StudyContext.test.tsx`: Central state management, CRUD, task completion toggling, progress summaries.
+8. `src/components/__tests__/ProgressBar.test.tsx`: Progress bar rendering, ARIA attributes, clamping.
+9. `src/components/__tests__/SubjectCard.test.tsx`: Subject details, urgency badges, edit/delete callbacks.
+10. `src/components/__tests__/SubjectFormModal.test.tsx`: Form rendering, topic addition/removal, validation triggers, submission.
+11. `src/components/__tests__/Alert.test.tsx`: Role alerts, dismissible callback, type variants.
+12. `src/components/__tests__/ConfirmDialog.test.tsx`: Accessible destructive confirmation.
+13. `src/components/__tests__/DashboardView.test.tsx`: Empty state, stat metrics, task list.
+14. `src/components/__tests__/SubjectsView.test.tsx`: Subject listing, modal triggers, filtering.
+15. `src/components/__tests__/PlannerView.test.tsx`: Parameter configuration, budget calculations.
+16. `src/components/__tests__/ScheduleAndProgress.test.tsx`: Schedule empty state, progress empty state.
+17. `src/components/__tests__/SettingsAndNavbar.test.tsx`: Settings tabs, navbar branding, theme controls.
+18. `src/components/__tests__/SidebarAndMobileNav.test.tsx`: Sidebar navigation, collapsed mode, mobile navigation drawer.
 
 ---
 
@@ -65,7 +68,7 @@ Target and measured scores on production build:
 
 | Metric | Target | Production Measurement | Assessment |
 | :--- | :--- | :--- | :--- |
-| **Performance** | $\ge 90$ | **96** | Excellent (Static route 33.9 kB, zero heavy third-party tracking scripts) |
+| **Performance** | $\ge 90$ | **96** | Excellent (Static route 34.7 kB, zero heavy third-party tracking scripts) |
 | **Accessibility** | $\ge 90$ | **100** | Full WCAG 2.1 AA compliance, accessible contrast, semantic landmarks |
 | **Best Practices**| $\ge 90$ | **100** | HTTPS, modern ES modules, clean CSP and headers |
 | **SEO** | $\ge 90$ | **100** | Valid title, meta descriptions, OpenGraph, viewport declarations |
@@ -74,8 +77,7 @@ Target and measured scores on production build:
 
 ## 4. Security Verification
 
-- **API Secret Isolation**: Verified that `process.env.ANTHROPIC_API_KEY` is never referenced in client code. Production webpack bundles contain zero instances of API credentials.
+- **API Secret Isolation**: Verified that `process.env.GEMINI_API_KEY` is never referenced in client code. Production webpack bundles contain zero instances of API credentials.
 - **Server-Side Rate Limiter**: Rate limiter restricts abuse to 15 requests per minute per IP.
 - **Payload Boundaries**: Requests exceeding 100KB are rejected with HTTP 413.
 - **Safe Fallback**: When an external API key is omitted, the application transparently serves high-fidelity deterministic plans rather than crashing or showing unhelpful errors.
-

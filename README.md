@@ -1,7 +1,7 @@
 # StudyFlow AI — Intelligent Study Planner
 
 > **Plan Smarter. Study Better.**  
-> An intelligent, accessible, and offline-resilient academic study planner designed for university students to organize courses, manage examination deadlines, and track daily progress using Anthropic Claude 3.5 Sonnet and deterministic constraint scheduling.
+> An intelligent, accessible, and offline-resilient academic study planner designed for university students to organize courses, manage examination deadlines, and track daily progress using Google Gemini 2.5 Flash and deterministic constraint scheduling.
 
 ---
 
@@ -29,9 +29,10 @@ University students regularly encounter conflicting academic pressures: overlapp
 
 - 🎯 **Intelligent Academic Dashboard**: Real-time overview of active courses, today's planned sessions, completed study hours, remaining tasks, upcoming deadlines, and overall completion percentages.
 - 📚 **Comprehensive Subject Management**: Create, edit, and delete courses with examination deadlines, difficulty levels (Easy, Medium, Hard), priority ratings, and topic lists with estimated durations.
-- 🤖 **AI-Powered Schedule Generator**: Powered by Claude 3.5 Sonnet to allocate study time, prioritize urgent deadlines, break large topics into 30–60 minute sessions, and enforce strict daily hour limits.
+- 🤖 **AI-Powered Schedule Generator**: Powered by Google Gemini 2.5 Flash to allocate study time, prioritize urgent deadlines, break large topics into 30–60 minute sessions, and enforce strict daily hour limits.
 - 🛡️ **Deterministic Algorithmic Fallback**: A local constraint-satisfaction engine that works offline with zero external API dependencies, guaranteeing that students always receive a valid schedule.
 - 📅 **Interactive Schedule Dashboard**: Switch between Daily and Multi-Day/Weekly views, mark tasks complete/incomplete, regenerate plans, and preserve completed task progress.
+- 📆 **RFC 5545 Calendar Export**: Export personalized schedules as standard `.ics` files for Apple Calendar, Google Calendar, and Outlook.
 - 📊 **Real Progress Analytics**: Tracks scheduled vs. studied minutes and generates subject-wise breakdown metrics based exclusively on verified user activity.
 - 💾 **Versioned Local Persistence & Privacy**: All student data is persisted in browser `localStorage` under a versioned schema (`v1`) with corrupt JSON recovery and JSON export/import backup capabilities.
 - ♿ **WCAG 2.1 AA Accessible**: High-contrast theme (Light, Dark, System), focus outlines, ARIA live announcements, keyboard navigation, and color-independent badges.
@@ -43,8 +44,8 @@ University students regularly encounter conflicting academic pressures: overlapp
 - **Frontend Framework**: Next.js 14 (App Router) with React 18
 - **Language**: TypeScript (Strict Mode enabled)
 - **Styling**: Tailwind CSS, PostCSS, Lucide React icons
-- **AI Integration**: Anthropic Claude API via official `@anthropic-ai/sdk`
-- **Validation**: Zod runtime schema validation
+- **AI Integration**: Google Gemini API via official `@google/genai` SDK
+- **Validation**: Zod runtime schema validation + native Gemini JSON schema
 - **Persistence**: Browser `localStorage` with versioned migration pipeline
 - **Testing**: Vitest, React Testing Library, `@testing-library/jest-dom`, Playwright, `@axe-core/playwright`
 - **Deployment**: Vercel
@@ -67,7 +68,8 @@ User Input (Subjects, Deadlines, Topics, Hours/Day)
          │                 Deterministic Planner
          ├─ IP Rate Limit         (Local Engine)
          ├─ Payload Limit            │
-         ├─ Anthropic SDK            │
+         ├─ GoogleGenAI SDK          │
+         ├─ Gemini JSON Schema       │
          ├─ Zod Response Check       │
          └─ Business Constraints     │
                        │             │
@@ -112,10 +114,10 @@ Copy the example environment configuration:
 ```bash
 cp .env.example .env.local
 ```
-Edit `.env.local` to add your Anthropic Claude API Key:
+Edit `.env.local` to add your Google Gemini API Key:
 ```env
-ANTHROPIC_API_KEY=sk-ant-api03-your_actual_key_here
-ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
 RATE_LIMIT_PER_MINUTE=15
 ```
 *(Note: If no API key is provided, StudyFlow AI runs seamlessly in deterministic fallback mode).*
@@ -136,6 +138,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm run build` | Build optimized production bundle |
 | `npm run start` | Start production server |
 | `npm run typecheck` | Run strict TypeScript compiler verification (`tsc --noEmit`) |
+| `npm run lint` | Run Next.js ESLint verification (`next lint`) |
 | `npm run test` | Run Vitest unit and component tests |
 | `npm run test:coverage` | Run test suite with V8 code coverage report |
 | `npm run test:e2e` | Run Playwright end-to-end and accessibility test suites |
@@ -152,11 +155,11 @@ The complete prompt is maintained in `src/lib/aiPlanner.ts`.
 3. **Difficulty Weighting**: High-difficulty and high-priority subjects receive earlier slots and larger focus blocks.
 4. **Digestible Chunks**: Large topics are partitioned into 30–60 minute sessions.
 5. **Contextual Reasons**: Every task receives a concrete pedagogical reason explaining why it was scheduled on that day.
-6. **No Hallucinations**: Claude is strictly instructed never to invent subjects or deadlines not provided in the student's payload.
+6. **No Hallucinations**: Gemini is strictly instructed never to invent subjects or deadlines not provided in the student's payload.
 
 ### Two-Tier Server-Side Validation:
 ```typescript
-// Tier 1: Zod structural schema validation
+// Tier 1: Gemini responseSchema + Zod structural schema validation
 const parseResult = StudyPlanSchema.safeParse(rawJson);
 
 // Tier 2: Domain business constraint verification
@@ -168,7 +171,7 @@ const constraintCheck = validatePlanBusinessConstraints(candidatePlan, request);
 
 ## 9. Fallback Planner (Deterministic Engine)
 
-When the Anthropic API is unreachable, unconfigured, or rate-limited, StudyFlow AI executes its internal algorithmic scheduler (`src/lib/fallbackPlanner.ts`):
+When the Gemini API is unreachable, unconfigured, or rate-limited, StudyFlow AI executes its internal algorithmic scheduler (`src/lib/fallbackPlanner.ts`):
 
 $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multiplier} \times \text{Priority Multiplier}$$
 
@@ -184,16 +187,16 @@ The scheduler chunks topics according to the student's preferred session length,
 
 Vitest and React Testing Library test results:
 ```
-Test Files: 17 passed (17)
-Tests:      61 passed (61)
+Test Files: 18 passed (18)
+Tests:      71 passed (71)
 Pass Rate:  100%
 ```
 
 ### Coverage (V8 Engine):
-- **Statements**: **75.90%** (Threshold: 50%)
-- **Lines**: **75.90%** (Threshold: 50%)
-- **Branches**: **68.82%** (Threshold: 50%)
-- **Functions**: **50.84%** (Threshold: 50%)
+- **Statements**: **80.51%** (Threshold: 50%)
+- **Lines**: **80.51%** (Threshold: 50%)
+- **Branches**: **69.21%** (Threshold: 50%)
+- **Functions**: **52.94%** (Threshold: 50%)
 
 ---
 
@@ -226,10 +229,9 @@ vercel --prod
 
 ### Current Limitations:
 - Local storage is browser-scoped; clearing browser site data erases schedules unless backed up via JSON export.
-- External calendar integration (.ics files / Google Calendar sync) is not included in the MVP.
 
 ### Future Roadmap:
-- Direct Google Calendar & Outlook Calendar synchronization.
+- Two-way Google Calendar & Outlook Calendar synchronization.
 - Spaced repetition scheduling based on the SuperMemo-2 (SM-2) algorithm.
 - Interactive in-app Pomodoro study timer directly connected to scheduled task sessions.
 - Multi-device cloud sync with end-to-end encryption.
@@ -239,4 +241,3 @@ vercel --prod
 ## 14. License
 
 This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for details.
-

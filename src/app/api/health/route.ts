@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const hasApiKey = Boolean(process.env.ANTHROPIC_API_KEY);
-  const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
+  const hasApiKey = Boolean(process.env.GEMINI_API_KEY);
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
   return NextResponse.json(
     {
@@ -11,7 +11,7 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       aiService: {
         configured: hasApiKey,
-        provider: 'Anthropic',
+        provider: 'Google Gemini',
         model,
       },
       environment: process.env.NODE_ENV || 'development',
@@ -19,4 +19,3 @@ export async function GET() {
     { status: 200 }
   );
 }
-
