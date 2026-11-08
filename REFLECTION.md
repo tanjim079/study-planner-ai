@@ -40,8 +40,11 @@ Designing for WCAG 2.1 AA revealed that accessibility is an architectural consid
 ## 4. Developer Observations & Future Direction
 
 - **[Developer Observation Placeholder]**: *Reflect on your personal experience working with Next.js App Router and testing reactive component states during this 8-week capstone.*
+- **Completed in this Release**:
+  - RFC 5545 `.ics` calendar export for seamless synchronization with Apple Calendar, Google Calendar, and Outlook.
+  - Zero-violation WCAG 2.1 AA accessibility audit via axe-core and keyboard navigation.
 - **Next Phase Goals**:
-  1. Integrating calendar export (`.ics` / Google Calendar sync).
-  2. Spaced repetition interval calculators based on the SuperMemo-2 (SM-2) algorithm.
-  3. Interactive study timer (Pomodoro mode) directly linked to scheduled session tasks.
+  1. Spaced repetition interval calculators based on the SuperMemo-2 (SM-2) algorithm.
+  2. Interactive study timer (Pomodoro mode) directly linked to scheduled session tasks.
+  3. Canvas / Blackboard LMS syllabus integration.
 
