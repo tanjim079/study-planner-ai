@@ -16,6 +16,7 @@ test.describe('StudyFlow AI End-to-End Critical Journey', () => {
 
     // 2. Navigate to Subjects
     await page.getByRole('button', { name: 'Add Your First Subject' }).click();
+    await page.getByRole('button', { name: 'Create Your First Subject' }).click();
     await expect(page.getByRole('dialog', { name: 'Add New Subject' })).toBeVisible();
 
     // 3. Create Subject 1 (Calculus II)
@@ -24,8 +25,8 @@ test.describe('StudyFlow AI End-to-End Critical Journey', () => {
     await page.getByPlaceholder('Topic #1 name (e.g. Limits & Continuity)').fill('Integration by Parts');
     await page.getByRole('button', { name: 'Create Subject' }).click();
 
-    // Verify Subject 1 was created
-    await expect(page.getByText('Calculus II')).toBeVisible();
+    // Verify Subject 1 was created (targeting the card heading specifically)
+    await expect(page.getByRole('heading', { name: 'Calculus II' })).toBeVisible();
 
     // 4. Create Subject 2 (Computer Systems)
     await page.getByRole('button', { name: 'Add Subject' }).click();
@@ -35,7 +36,7 @@ test.describe('StudyFlow AI End-to-End Critical Journey', () => {
     await page.getByRole('button', { name: 'Create Subject' }).click();
 
     // Verify Subject 2 was created
-    await expect(page.getByText('Computer Systems')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Computer Systems' })).toBeVisible();
 
     // 5. Navigate to AI Study Planner
     await page.getByRole('button', { name: 'AI Study Planner' }).click();
@@ -112,6 +113,7 @@ test.describe('StudyFlow AI End-to-End Critical Journey', () => {
 
     // Add subject
     await page.getByRole('button', { name: 'Add Your First Subject' }).click();
+    await page.getByRole('button', { name: 'Create Your First Subject' }).click();
     await page.getByLabel('Subject Name').fill('Algorithms');
     await page.getByLabel('Deadline (Exam or Assignment Date)').fill('2026-11-20');
     await page.getByPlaceholder('Topic #1 name (e.g. Limits & Continuity)').fill('Dynamic Programming');

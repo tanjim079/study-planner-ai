@@ -2,9 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: 1,
   reporter: 'list',
   use: {
@@ -18,9 +18,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm.cmd run start',
+    command: 'npm.cmd run dev',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: true,
-    timeout: 60000,
+    timeout: 120000,
   },
 });

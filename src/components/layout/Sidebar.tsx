@@ -52,14 +52,14 @@ export function Sidebar({
       label: 'AI Study Planner',
       icon: Sparkles,
       badge: 'AI',
-      badgeColor: 'bg-primary-100 text-primary-700 dark:bg-primary-950/80 dark:text-primary-300',
+      badgeColor: 'bg-primary-100 text-primary-800 dark:bg-primary-950/80 dark:text-primary-300',
     },
     {
       id: 'schedule' as TabType,
       label: 'Study Schedule',
       icon: Calendar,
       badge: activePlan ? 'Active' : null,
-      badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300',
+      badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300',
     },
     {
       id: 'progress' as TabType,
@@ -95,7 +95,7 @@ export function Sidebar({
               <span className="font-bold text-slate-900 dark:text-white tracking-tight">
                 StudyFlow<span className="text-primary-600 dark:text-primary-400"> AI</span>
               </span>
-              <span className="text-[10px] uppercase font-semibold text-slate-400 dark:text-slate-500 tracking-wider">
+              <span className="text-[10px] uppercase font-bold text-slate-600 dark:text-slate-400 tracking-wider">
                 Intelligent Planner
               </span>
             </div>
@@ -106,7 +106,7 @@ export function Sidebar({
           type="button"
           onClick={onToggleCollapse}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
@@ -128,8 +128,8 @@ export function Sidebar({
               className={cn(
                 'group flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
                 isActive
-                  ? 'bg-primary-50 text-primary-700 dark:bg-primary-950/50 dark:text-primary-300 font-semibold shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200'
+                  ? 'bg-primary-50 text-primary-800 dark:bg-primary-950/50 dark:text-primary-300 font-semibold shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
               )}
             >
               <Icon
@@ -137,7 +137,7 @@ export function Sidebar({
                   'h-5 w-5 shrink-0 transition-colors',
                   isActive
                     ? 'text-primary-600 dark:text-primary-400'
-                    : 'text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300'
+                    : 'text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200'
                 )}
                 aria-hidden="true"
               />
@@ -150,7 +150,7 @@ export function Sidebar({
                       className={cn(
                         'rounded-full px-2 py-0.5 text-[11px] font-semibold',
                         item.badgeColor ||
-                          'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                          'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                       )}
                     >
                       {item.badge}
@@ -165,13 +165,13 @@ export function Sidebar({
 
       {/* Bottom quick user status / academic info */}
       {!isCollapsed && (
-        <div className="p-4 m-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>Academic Mode</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">Active</span>
+        <div className="p-4 m-3 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300">
+            <span className="font-medium">Academic Mode</span>
+            <span className="font-bold text-emerald-800 dark:text-emerald-400">Active</span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 leading-snug">
-            WCAG 2.1 AA Compliant & Offline-Ready
+          <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+            WCAG 2.1 AA Compliant &amp; Offline-Ready
           </p>
         </div>
       )}
