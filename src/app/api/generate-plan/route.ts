@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PlanGenerationRequestSchema } from '@/lib/schemas';
-import { generateAiStudyPlan } from '@/lib/aiPlanner';
+import { generateAiStudyPlan, categorizeGeminiError } from '@/lib/aiPlanner';
 import { generateDeterministicPlan } from '@/lib/fallbackPlanner';
 
-// In-memory sliding window rate limiter (simple & zero-external-dependency for production)
+// Ensure the execution duration stays within Next.js / Vercel serverless function limits
+export const maxDuration = 30;
+
+// In-memory sliding window rate limiter (zero-external-dependency for reliable runtime)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 15;
 const ipRequestCounts = new Map<string, { count: number; resetTime: number }>();
@@ -89,11 +92,15 @@ export async function POST(request: NextRequest) {
     // Check optional client-provided key or server environment key
     const clientKey = request.headers.get('x-gemini-key') || request.headers.get('x-api-key');
     const apiKey = clientKey || process.env.GEMINI_API_KEY;
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+    const fallbackModel =
+      process.env.GEMINI_FALLBACK_MODEL ||
+      (process.env.ENABLE_MODEL_FAILOVER === 'true' ? 'gemini-3.6-flash' : undefined);
+    const enableModelFailover =
+      process.env.ENABLE_MODEL_FAILOVER === 'true' || Boolean(process.env.GEMINI_FALLBACK_MODEL);
 
-    // 4. Check if AI service is available
+    // 4. Check if AI service is configured
     if (!apiKey) {
-      // Deterministic fallback plan generation
       const fallbackPlan = generateDeterministicPlan(planRequest);
       fallbackPlan.warnings.unshift(
         'AI Planning Service is currently in offline mode (No GEMINI_API_KEY configured). A high-accuracy algorithmic study plan was generated instead.'
@@ -107,39 +114,60 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 5. Generate plan using Google Gemini AI
+    // 5. Generate plan using Google Gemini AI with bounded retries, failover, and graceful fallback
+    const requestStartTime = Date.now();
     try {
-      const aiPlan = await generateAiStudyPlan(planRequest, apiKey, model);
+      const aiPlan = await generateAiStudyPlan(planRequest, apiKey, model, {
+        fallbackModel,
+        enableModelFailover,
+      });
+      const totalDuration = Date.now() - requestStartTime;
+
+      console.info(
+        `[StudyFlow API] Generation completed successfully | Model: ${aiPlan.modelUsed || model} | TotalDuration: ${totalDuration}ms`
+      );
+
       return NextResponse.json({
         success: true,
         plan: aiPlan,
         isAiGenerated: true,
       });
     } catch (aiError: unknown) {
-      const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown AI error';
-      console.error('[StudyFlow API] Gemini Generation failed:', errorMessage);
+      const totalDuration = Date.now() - requestStartTime;
+      const categorized = categorizeGeminiError(aiError);
 
-      // Graceful fallback to deterministic planner if external AI fails (e.g. rate limit, quota, network timeout, auth failure)
-      const fallbackPlan = generateDeterministicPlan(planRequest);
-      const lower = errorMessage.toLowerCase();
-      const friendlyReason = lower.includes('timeout') || lower.includes('timed out')
-        ? 'Request timed out'
-        : lower.includes('429') || lower.includes('quota') || lower.includes('resource_exhausted')
-        ? 'API quota exhausted'
-        : lower.includes('401') || lower.includes('403') || lower.includes('api_key_invalid') || lower.includes('unauthorized')
-        ? 'API authentication failure'
-        : 'API service error';
-
-      fallbackPlan.warnings.unshift(
-        `Gemini AI service was temporarily unavailable (${friendlyReason}). Generated reliable algorithmic fallback plan instead.`
+      // Safe server telemetry: Never log API keys or user personal study content
+      console.error(
+        `[StudyFlow API] Gemini Generation failed | Model: ${model} | Category: ${categorized.category} | Duration: ${totalDuration}ms | Error: ${categorized.message}`
       );
+
+      // Graceful deterministic fallback
+      const fallbackPlan = generateDeterministicPlan(planRequest);
+
+      let friendlyNotice: string;
+      if (categorized.category === 'OVERLOAD_503') {
+        friendlyNotice = 'Gemini is temporarily busy. A Basic Plan has been generated so you can continue studying.';
+      } else if (categorized.category === 'TIMEOUT') {
+        friendlyNotice = 'Gemini request timed out. A Basic Plan has been generated so you can continue studying.';
+      } else if (categorized.category === 'QUOTA_EXHAUSTED' || categorized.category === 'RATE_LIMITED_429') {
+        friendlyNotice = 'Gemini API quota exhausted. A Basic Plan has been generated so you can continue studying.';
+      } else if (categorized.category === 'AUTH_FAILURE') {
+        friendlyNotice = 'Gemini authentication failed. A Basic Plan has been generated so you can continue studying.';
+      } else {
+        friendlyNotice = 'Gemini AI service was temporarily unavailable. A Basic Plan has been generated so you can continue studying.';
+      }
+
+      fallbackPlan.warnings.unshift(friendlyNotice);
 
       return NextResponse.json({
         success: true,
         plan: fallbackPlan,
         isAiGenerated: false,
         fallbackTriggered: true,
-        fallbackReason: errorMessage,
+        fallbackCategory: categorized.category,
+        fallbackReason: categorized.message,
+        notice: friendlyNotice,
+        fallbackNotice: friendlyNotice,
       });
     }
   } catch (error: unknown) {
@@ -154,4 +182,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

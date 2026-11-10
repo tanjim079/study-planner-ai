@@ -100,8 +100,8 @@ Clone and launch StudyFlow AI locally in less than 3 minutes:
 
 ### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/[YOUR_USERNAME]/studyflow-ai.git
-cd studyflow-ai
+git clone https://github.com/tanjim079/study-planner-ai.git
+cd study-planner-ai
 ```
 
 ### Step 2: Install Dependencies
@@ -117,10 +117,12 @@ cp .env.example .env.local
 Edit `.env.local` to add your Google Gemini API Key:
 ```env
 GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash
+ENABLE_MODEL_FAILOVER=true
+GEMINI_FALLBACK_MODEL=gemini-3.6-flash
 RATE_LIMIT_PER_MINUTE=15
 ```
-*(Note: If no API key is provided, StudyFlow AI runs seamlessly in deterministic fallback mode).*
+*(Note: If no API key is provided, or if Gemini encounters transient upstream saturation/quota exhaustion, StudyFlow AI seamlessly runs in deterministic fallback mode).*
 
 ### Step 4: Run Development Server
 ```bash
@@ -167,6 +169,13 @@ const constraintCheck = validatePlanBusinessConstraints(candidatePlan, request);
 // Validates: subject ID existence, window dates, deadline compliance, daily minutes ceiling
 ```
 
+### High-Availability & Fault Tolerance:
+- **Bounded Interactive Retry Budget**: Interactive generation allows 1 initial attempt and at most 1 retry (`maxRetries: 1`, total 2 attempts) for transient 503/504 errors. Non-retryable errors (401 auth, 400 bad request, 429 quota, schema mismatches) fail fast immediately.
+- **Coordinated Request Deadlines**: Requests operate within a strict 28s overall deadline. When secondary failover is enabled, Attempt 1 is capped at 12s, guaranteeing Attempt 2 has $\ge 15\text{s}$ to succeed before the route deadline.
+- **In-Memory Circuit Breaker**: Tracks consecutive failures per model. After 3 consecutive transient failures, the circuit transitions to `OPEN` for a 30s cooldown, shedding load instantly without hammering saturated upstream endpoints.
+- **Secondary Model Failover**: If primary `gemini-3.8-flash` encounters transient failure or its circuit is open, generation automatically fails over to `gemini-3.6-flash`, subjecting responses to identical Zod and business constraints.
+- **Distinct UX Status Alerts**: The UI clearly informs users whether an **AI Plan** was generated successfully, or if a **Basic Plan** was produced due to temporary Gemini unavailability or quota exhaustion.
+
 ---
 
 ## 9. Fallback Planner (Deterministic Engine)
@@ -188,15 +197,15 @@ The scheduler chunks topics according to the student's preferred session length,
 Vitest and React Testing Library test results:
 ```
 Test Files: 18 passed (18)
-Tests:      71 passed (71)
+Tests:      88 passed (88)
 Pass Rate:  100%
 ```
 
 ### Coverage (V8 Engine):
-- **Statements**: **80.51%** (Threshold: 50%)
-- **Lines**: **80.51%** (Threshold: 50%)
-- **Branches**: **69.21%** (Threshold: 50%)
-- **Functions**: **52.94%** (Threshold: 50%)
+- **Statements**: **80.97%** (Threshold: 50%)
+- **Lines**: **80.97%** (Threshold: 50%)
+- **Branches**: **67.30%** (Threshold: 50%)
+- **Functions**: **62.06%** (Threshold: 50%)
 
 ---
 

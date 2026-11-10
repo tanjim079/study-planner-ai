@@ -79,9 +79,33 @@ export function PlannerView({ onNavigateToSchedule, onNavigateToSubjects }: Plan
       if (result.isAiGenerated) {
         setGenerationNotice('Personalized AI study plan generated successfully by Gemini!');
       } else {
-        setGenerationNotice(
-          'Structured study plan generated using our deterministic algorithmic scheduler.'
+        const quotaWarning = result.warnings?.find(
+          (w) => w.toLowerCase().includes('quota') || w.toLowerCase().includes('rate limit')
         );
+        const unavailableWarning = result.warnings?.find(
+          (w) =>
+            w.toLowerCase().includes('temporarily busy') ||
+            w.toLowerCase().includes('busy') ||
+            w.toLowerCase().includes('temporarily unavailable') ||
+            w.toLowerCase().includes('circuit breaker') ||
+            w.toLowerCase().includes('timed out') ||
+            w.toLowerCase().includes('timeout') ||
+            w.toLowerCase().includes('overload')
+        );
+
+        if (quotaWarning) {
+          setGenerationNotice(
+            'Gemini quota exhausted. A Basic Plan has been generated so you can continue studying.'
+          );
+        } else if (unavailableWarning) {
+          setGenerationNotice(
+            'Gemini is temporarily unavailable. A Basic Plan has been generated so you can continue studying.'
+          );
+        } else {
+          setGenerationNotice(
+            'Structured study plan generated using our deterministic algorithmic scheduler.'
+          );
+        }
       }
     }
   };
@@ -343,8 +367,15 @@ export function PlannerView({ onNavigateToSchedule, onNavigateToSubjects }: Plan
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300 mb-2">
-                {activePlan.isAiGenerated ? 'Gemini AI Schedule' : 'Algorithmic Basic Plan'}
+              <div
+                data-testid="planner-plan-badge"
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold border mb-2 ${
+                  activePlan.isAiGenerated
+                    ? 'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-950/70 dark:text-primary-300 dark:border-primary-800'
+                    : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                }`}
+              >
+                {activePlan.isAiGenerated ? 'AI Plan' : 'Basic Plan'}
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {activePlan.planTitle}

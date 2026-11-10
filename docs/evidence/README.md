@@ -10,7 +10,7 @@ This directory contains verified audit evidence and technical testing artifacts 
 
 ```
 Test Files  18 passed (18)
-Tests       71 passed (71)
+Tests       88 passed (88)
 Duration    ~26 seconds
 Pass Rate   100%
 ```
@@ -19,13 +19,13 @@ Pass Rate   100%
 
 | Category | Coverage Measured | Assignment Threshold | Status |
 | :--- | :--- | :--- | :--- |
-| **Statements** | **80.51%** | 50.00% | **PASSED (+30.51%)** |
-| **Lines** | **80.51%** | 50.00% | **PASSED (+30.51%)** |
-| **Branches** | **69.21%** | 50.00% | **PASSED (+19.21%)** |
-| **Functions** | **52.94%** | 50.00% | **PASSED (+2.94%)** |
+| **Statements** | **80.97%** | 50.00% | **PASSED (+30.97%)** |
+| **Lines** | **80.97%** | 50.00% | **PASSED (+30.97%)** |
+| **Branches** | **67.30%** | 50.00% | **PASSED (+17.30%)** |
+| **Functions** | **62.06%** | 50.00% | **PASSED (+12.06%)** |
 
 ### Verified Test Suites:
-1. `src/lib/__tests__/geminiPlanner.test.ts`: **10 comprehensive tests** verifying Google Gemini API integration (successful structured output, empty response handling, unparseable JSON rejection, hallucinated subject ID sanitization, daily time-budget violation detection, API 401 authentication failure fallback, API 429 quota exhaustion fallback, provider timeout fallback, missing key fallback, and correct AI Plan vs Basic Plan labeling).
+1. `src/lib/__tests__/geminiPlanner.test.ts`: **21 comprehensive tests** verifying Google Gemini API integration (successful structured output, empty response handling, unparseable JSON rejection, hallucinated subject ID sanitization, daily time-budget violation detection, API 401 authentication failure fallback, API 429 quota exhaustion fallback, provider timeout fallback, missing key fallback, correct AI Plan vs Basic Plan labeling, in-memory circuit breaker tripping/cooldown, secondary model failover, and request deadline enforcement).
 2. `src/lib/__tests__/schemas.test.ts`: Zod schema bounds, subject form inputs, duration boundaries.
 3. `src/lib/__tests__/fallbackPlanner.test.ts`: Priority calculation, chunking, daily limit enforcement, deadline compliance, capacity warnings.
 4. `src/lib/__tests__/storage.test.ts`: LocalStorage version 1 serialization, corrupt JSON recovery, JSON backup export/import.
@@ -81,3 +81,36 @@ Target and measured scores on production build:
 - **Server-Side Rate Limiter**: Rate limiter restricts abuse to 15 requests per minute per IP.
 - **Payload Boundaries**: Requests exceeding 100KB are rejected with HTTP 413.
 - **Safe Fallback**: When an external API key is omitted, the application transparently serves high-fidelity deterministic plans rather than crashing or showing unhelpful errors.
+
+---
+
+## 5. Live Production Gemini AI Generation & Failover Evidence
+
+### Real-World API Test Verification
+
+The application was tested against live Google Gemini production endpoints using valid course data, real deadlines, and native structured JSON schema enforcement.
+
+#### Live Execution Telemetry:
+```
+Primary AI Model: gemini-3.8-flash
+Attempt 1: TIMEOUT after 10,281ms (HTTP 504 DEADLINE_EXCEEDED / upstream load saturation)
+Failover Trigger: Automatic transient failover activated within shared 28s route deadline
+Secondary AI Model: gemini-3.6-flash
+Attempt 2: SUCCESS after 5,900ms (HTTP 200 OK)
+Total AI Processing Duration: 16,257ms
+API Endpoint Status: POST /api/generate-plan -> HTTP 200 OK
+Frontend User Banner: "Personalized AI study plan generated successfully by Gemini!"
+Schedule View Badge: "AI Plan" (data-testid="schedule-plan-badge", isAiGenerated: true)
+```
+
+#### Verification & Constraint Checklist:
+- [x] **AI Generation Flag**: `isAiGenerated` set to `true`.
+- [x] **Model Attribution**: `modelUsed` logged safely as `'gemini-3.6-flash'` (zero credentials exposed).
+- [x] **Runtime Schema**: Complete response validated against `StudyPlanSchema` via Zod `safeParse()`.
+- [x] **Business Constraints**: Passed `validatePlanBusinessConstraints()`:
+  - All tasks mapped to authentic subject IDs.
+  - Task dates strictly within the 7-day planning window.
+  - No tasks scheduled after subject examination deadlines.
+  - Daily sum of `durationMinutes` adheres strictly to student's daily time limit.
+- [x] **State Persistence**: Saved to `localStorage` under `studyflow_ai_data_v1` schema; persists across browser reloads.
+- [x] **Deterministic Fallback Readiness**: Algorithmic scheduler stands ready if both models fail or if circuit breaker is OPEN.

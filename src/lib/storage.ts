@@ -99,11 +99,12 @@ export function loadFromStorage(): StorageSchemaV1 {
 /**
  * Safely save data to localStorage.
  */
-export function saveToStorage(state: StorageSchemaV1): boolean {
+export function saveToStorage(state: Partial<StorageSchemaV1>): boolean {
   if (typeof window === 'undefined') return false;
 
   try {
     const payload: StorageSchemaV1 = {
+      ...INITIAL_STORAGE_STATE,
       ...state,
       version: CURRENT_STORAGE_VERSION,
       lastUpdated: new Date().toISOString(),

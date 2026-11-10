@@ -2,7 +2,7 @@
 
 ## 1. System Overview
 
-**StudyFlow AI** is a production-ready, client-first academic scheduling application tailored for university students. It combines Google Gemini 2.5 Flash (`gemini-2.5-flash`) with a deterministic constraint-satisfaction fallback engine to generate balanced, deadline-aware daily and weekly study roadmaps.
+**StudyFlow AI** is a production-ready, client-first academic scheduling application tailored for university students. It combines Google Gemini 3.8 Flash (`gemini-3.8-flash`) with automatic secondary failover to Gemini 3.6 Flash (`gemini-3.6-flash`) and a deterministic constraint-satisfaction fallback engine to generate balanced, deadline-aware daily and weekly study roadmaps.
 
 ```
 +-------------------------------------------------------------------------------+
@@ -41,15 +41,17 @@
 |  | 2. Payload size limiter (Max 100 KB)         |      | AI provider info  |  |
 |  | 3. Zod Schema Validation                     |      | Node environment  |  |
 |  | 4. Server Secret (GEMINI_API_KEY)            |      +-------------------+  |
-|  | 5. Google GenAI SDK (gemini-2.5-flash)       |                             |
-|  | 6. Native Gemini JSON Schema                 |                             |
+|  | 5. Primary AI: gemini-3.8-flash              |                             |
+|  |    + Failover AI: gemini-3.6-flash           |                             |
+|  |    + In-Memory Circuit Breaker               |                             |
+|  | 6. Native Gemini JSON Schema (LOW Thinking)  |                             |
 |  | 7. Zod Runtime Response Validation           |                             |
 |  | 8. Business Constraint Verification          |                             |
 |  |    (Valid IDs, Date Windows, Capacity)       |                             |
 |  +----------------------------------------------+                             |
 |                         |                                                     |
 |                         v                                                     |
-|             Google Gemini API (gemini-2.5-flash)                              |
+|       Google Gemini API (3.8 Flash / 3.6 Flash)                               |
 +-------------------------------------------------------------------------------+
 ```
 
@@ -93,6 +95,27 @@
      - Study sessions for a subject are scheduled on or before its examination deadline.
      - Daily allocated study minutes do not exceed the student's daily hour constraint.
      - Feasibility warnings are produced if material exceeds available capacity.
+
+### 2.4 Resilience, Circuit Breaker & Failover Engine
+- **Bounded Interactive Retry Budget**: Limits generation to 1 initial attempt and at most 1 retry (`maxRetries: 1`, total 2 attempts) strictly for transient 503/504 errors. Authentication (401), invalid request (400), quota exhaustion (429), and business validation failures are non-retryable and fail immediately.
+- **Coordinated Request Deadline (28s Route Budget)**:
+  - Total route deadline: 28,000ms.
+  - Attempt 1 budget (with failover active): Capped at `min(12000, perAttemptTimeoutMs)`.
+  - Minimum remaining budget for Attempt 2: $\ge 15,000\text{ms}$. If less than 10,000ms remain, Attempt 2 is bypassed to avoid client HTTP timeouts.
+- **In-Memory Circuit Breaker (`ModelCircuitBreaker`)**:
+  - States: `CLOSED` (normal operation), `OPEN` (shedding load, rejecting calls), `HALF_OPEN` (testing recovery).
+  - Trips to `OPEN` after 3 consecutive transient failures.
+  - Cooldown period: 30 seconds.
+  - In `OPEN` state, calls to the model fast-fail instantly with an explicit `CIRCUIT_BREAKER_OPEN` error, immediately diverting traffic to the secondary model or deterministic fallback.
+- **Secondary Model Failover**:
+  - Primary model: `gemini-3.8-flash` (configured with `thinkingLevel: ThinkingLevel.LOW`).
+  - Fallback model: `gemini-3.6-flash`.
+  - Activation: Enabled explicitly via `ENABLE_MODEL_FAILOVER=true`.
+  - Failover occurs upon transient primary failure or open circuit state, sharing the same 28s deadline and subjecting responses to identical Zod schemas and business validations.
+- **Serverless Architecture & In-Memory State Considerations**:
+  - On Vercel Serverless / AWS Lambda, in-memory state (circuit breaker instances) is scoped per warm container process.
+  - A warm container successfully protects against consecutive requests hitting an overloaded model.
+  - Cold starts initialize a fresh `CLOSED` circuit breaker without cross-instance synchronization. For distributed multi-region deployments, an external state store (e.g. Upstash Redis / Vercel KV) can be integrated without modifying the circuit breaker interface.
 
 ---
 

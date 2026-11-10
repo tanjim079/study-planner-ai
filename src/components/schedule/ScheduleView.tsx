@@ -71,6 +71,7 @@ export function ScheduleView({ onNavigateToPlanner, onNavigateToSubjects }: Sche
               {activePlan.planTitle}
             </h2>
             <span
+              data-testid="schedule-plan-badge"
               className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold border ${
                 activePlan.isAiGenerated
                   ? 'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-950/70 dark:text-primary-300 dark:border-primary-800'

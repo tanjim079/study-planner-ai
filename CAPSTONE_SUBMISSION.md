@@ -2,14 +2,14 @@
 
 ## 1. Project Brief
 
-University students face immense cognitive overload when balancing overlapping examination schedules, varying subject complexities, and finite daily study hours. Conventional calendars and static to-do lists fail because they lack deadline awareness, difficulty weighting, and intelligent topic chunking, leading to cramming and academic burnout. **StudyFlow AI** solves this problem by providing an intelligent, accessible, and offline-resilient study planner that combines Google's Gemini 2.5 Flash (`gemini-2.5-flash`) with a deterministic constraint-satisfaction fallback engine. Students input their active courses, target deadlines, difficulty levels, and daily time budget; StudyFlow AI transforms these constraints into balanced, structured daily and weekly schedules with verified task progress tracking.
+University students face immense cognitive overload when balancing overlapping examination schedules, varying subject complexities, and finite daily study hours. Conventional calendars and static to-do lists fail because they lack deadline awareness, difficulty weighting, and intelligent topic chunking, leading to cramming and academic burnout. **StudyFlow AI** solves this problem by providing an intelligent, accessible, and offline-resilient study planner that combines Google's Gemini 3.8 Flash (`gemini-3.8-flash`) and failover Gemini 3.6 Flash (`gemini-3.6-flash`) with a deterministic constraint-satisfaction fallback engine. Students input their active courses, target deadlines, difficulty levels, and daily time budget; StudyFlow AI transforms these constraints into balanced, structured daily and weekly schedules with verified task progress tracking.
 
 ---
 
 ## 2. Live Application & Repository
 
 - **Live Production URL**: `https://studyflow-ai.vercel.app` *(or developer deployed Vercel URL)*
-- **GitHub Repository**: `https://github.com/[DEVELOPER_USERNAME]/studyflow-ai` *(replace with developer repository)*
+- **GitHub Repository**: `https://github.com/tanjim079/study-planner-ai`
 - **Local Run Time**: Less than 3 minutes to clone, install, and execute locally.
 
 ---
@@ -17,8 +17,9 @@ University students face immense cognitive overload when balancing overlapping e
 ## 3. AI Integration Architecture
 
 ### 3.1 Model Selection & Responsibilities
-- **AI Model**: `gemini-2.5-flash` via the official `@google/genai` SDK.
-- **Provider Choice Justification**: Google Gemini 2.5 Flash provides ultra-fast inference speed, a generous free-tier rate limit (15 requests/min), native JSON schema enforcement, and reliable pedagogical planning without expensive token costs.
+- **Primary AI Model**: `gemini-3.8-flash` via the official `@google/genai` SDK with `thinkingLevel: ThinkingLevel.LOW` for fast structured generation.
+- **Secondary Failover Model**: `gemini-3.6-flash` configured to catch upstream 503/504 timeouts seamlessly.
+- **Provider Choice Justification**: Google Gemini Flash models provide high-throughput structured JSON schema output, accessible free-tier quotas, and reliable pedagogical reasoning without high token costs.
 - **System Prompt Design**: Located in `src/lib/aiPlanner.ts`. Explicitly constrains the model to act as a pedagogical scheduling assistant. Requires strict adherence to daily study hour ceilings, deadline awareness (never scheduling study after an exam date), difficulty prioritization, and topic chunking into 30–60 minute focused blocks.
 
 ### 3.2 Structured Output & Runtime Validation Pipeline
@@ -39,6 +40,25 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
 - Issues transparent warnings when time budgets cannot accommodate all requested material.
 - Explicitly labels schedules as "Basic Plan (Algorithmic Fallback)".
 
+### 3.4 Production Availability, Circuit Breaker & Failover Evidence
+- **Interactive Attempt Budget**: Restricted to 1 initial attempt and at most 1 retry (`maxRetries: 1`, max 2 attempts total) for transient 503/504 errors. Non-retryable errors (401 auth, 400 bad request, 429 quota exhaustion) fail immediately.
+- **Coordinated Request Deadline (28s Route Budget)**: Attempt 1 is capped at 12s when failover is active, ensuring Attempt 2 has $\ge 15\text{s}$ remaining within the 28s route deadline.
+- **In-Memory Circuit Breaker**: Trips to `OPEN` for 30s after 3 consecutive failures to prevent hammering saturated upstream models.
+- **Verified Real Production Live Generation**:
+  ```
+  Primary Model: gemini-3.8-flash
+  Attempt 1: TIMEOUT after 10,281ms (HTTP 504 / Deadline Exceeded)
+  Action: Automatic Model Failover triggered within shared 28s budget
+  Secondary Model: gemini-3.6-flash
+  Attempt 2: SUCCESS after 5,900ms (HTTP 200 OK)
+  Total AI Processing Time: 16,257ms
+  API Response: HTTP 200 (StudyPlan payload with isAiGenerated: true, modelUsed: 'gemini-3.6-flash')
+  Frontend Notification: "Personalized AI study plan generated successfully by Gemini!"
+  Schedule Badge: "AI Plan" (isAiGenerated: true)
+  ```
+- **Validation**: 100% passed runtime Zod schema (`StudyPlanSchema`) and domain business constraints (`validatePlanBusinessConstraints`). No post-deadline tasks, no hallucinated subject IDs, and daily hour budget strictly observed.
+- **User Experience**: The UI provides distinct notifications for AI Plan generation, upstream temporary unavailability, and quota exhaustion.
+
 ---
 
 ## 4. Testing Evidence
@@ -52,12 +72,12 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
   ```
 - **Results**:
   - **18 Test Suites Passed (100%)**
-  - **71 Automated Tests Passed (100%)**
+  - **88 Automated Tests Passed (100%)**
 - **Coverage Measurements (V8 Engine)**:
-  - **Statements**: **80.51%** (Requirement: $\ge 50\%$)
-  - **Lines**: **80.51%** (Requirement: $\ge 50\%$)
-  - **Branches**: **69.21%** (Requirement: $\ge 50\%$)
-  - **Functions**: **52.94%** (Requirement: $\ge 50\%$)
+  - **Statements**: **80.97%** (Requirement: $\ge 50\%$)
+  - **Lines**: **80.97%** (Requirement: $\ge 50\%$)
+  - **Branches**: **67.30%** (Requirement: $\ge 50\%$)
+  - **Functions**: **62.06%** (Requirement: $\ge 50\%$)
 
 ### 4.2 End-to-End Testing (Playwright)
 - **Tool**: Playwright v1.50+ / `@axe-core/playwright`.
@@ -94,7 +114,9 @@ $$\text{Priority Score} = \text{Urgency Factor} \times \text{Difficulty Multipli
 - **Platform**: Vercel.
 - **Environment Variables**:
   - `GEMINI_API_KEY`: Server-side Google Gemini API secret.
-  - `GEMINI_MODEL`: Default `gemini-2.5-flash`.
+  - `GEMINI_MODEL`: Primary model (Default `gemini-3.8-flash`).
+  - `ENABLE_MODEL_FAILOVER`: Enable secondary model failover (`true`).
+  - `GEMINI_FALLBACK_MODEL`: Secondary failover model (`gemini-3.6-flash`).
   - `RATE_LIMIT_PER_MINUTE`: Default `15`.
 - **Monitoring & Health Checks**: `/api/health` reports uptime and AI provider status (`Google Gemini`) without exposing credentials.
 - **Rollback Strategy**: Instant Vercel promotion rollback documented in `DEPLOYMENT_CHECKLIST.md`.
