@@ -197,7 +197,7 @@ The scheduler chunks topics according to the student's preferred session length,
 Vitest and React Testing Library test results:
 ```
 Test Files: 18 passed (18)
-Tests:      88 passed (88)
+Tests:      89 passed (89)
 Pass Rate:  100%
 ```
 

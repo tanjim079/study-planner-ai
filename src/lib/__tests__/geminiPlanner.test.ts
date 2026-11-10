@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   generateAiStudyPlan,
   categorizeGeminiError,
@@ -103,6 +103,10 @@ describe('Google Gemini AI Integration, Reliability & Error Handling', () => {
     delete process.env.GEMINI_MODEL;
     delete process.env.GEMINI_FALLBACK_MODEL;
     delete process.env.ENABLE_MODEL_FAILOVER;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   // Test 1: Successful structured output
@@ -572,20 +576,65 @@ describe('Google Gemini AI Integration, Reliability & Error Handling', () => {
     expect(plan.isAiGenerated).toBe(true);
   });
 
-  // Test 21: Request deadline aborts retry when remaining time is insufficient (Task 4 & 10)
+  // Test 21: Request deadline aborts retry when remaining time is insufficient (deterministic simulated clock)
   it('21. aborts retries when remaining execution time is under minimum threshold (10s)', async () => {
-    mockGenerateContent.mockRejectedValueOnce(
-      new Error('503 UNAVAILABLE: high demand')
-    );
+    let simulatedNow = 1_700_000_000_000;
+    const dateSpy = vi.spyOn(Date, 'now').mockImplementation(() => simulatedNow);
 
-    // Configure overallTimeoutMs to 10005ms: attempt 1 takes 10ms -> remaining < 10000ms -> no attempt 2
-    await expect(
-      generateAiStudyPlan(sampleRequest, 'test-key', 'gemini-3.8-flash', {
-        overallTimeoutMs: 10005,
+    try {
+      mockGenerateContent.mockImplementationOnce(async () => {
+        // Advance simulated time by 6,000ms during attempt 1
+        simulatedNow += 6000;
+        throw new Error('503 UNAVAILABLE: high demand');
+      });
+
+      // Overall deadline is 15,000ms. After attempt 1 (6,000ms elapsed),
+      // remaining time is 9,000ms, which is strictly below the 10,000ms minimum retry threshold.
+      await expect(
+        generateAiStudyPlan(sampleRequest, 'test-key', 'gemini-3.8-flash', {
+          overallTimeoutMs: 15000,
+          maxRetries: 1,
+        })
+      ).rejects.toThrow('503 UNAVAILABLE: high demand');
+
+      // Assert that first request was attempted and no second request occurred
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+    } finally {
+      dateSpy.mockRestore();
+    }
+  });
+
+  // Test 22: Boundary test confirming retry IS permitted when remaining time is sufficient (>= 10s)
+  it('22. permits retry when remaining execution time is at or above minimum threshold (>=10s)', async () => {
+    let simulatedNow = 1_700_000_000_000;
+    const dateSpy = vi.spyOn(Date, 'now').mockImplementation(() => simulatedNow);
+
+    try {
+      // Attempt 1 fails after 4,000ms
+      mockGenerateContent.mockImplementationOnce(async () => {
+        simulatedNow += 4000;
+        throw new Error('503 UNAVAILABLE: high demand');
+      });
+
+      // Attempt 2 succeeds after 2,000ms
+      mockGenerateContent.mockImplementationOnce(async () => {
+        simulatedNow += 2000;
+        return { text: JSON.stringify(validGeminiPlan) };
+      });
+
+      // Overall deadline is 25,000ms. After attempt 1 (4,000ms elapsed),
+      // remaining time is 21,000ms, which is well above the 10,000ms threshold.
+      const plan = await generateAiStudyPlan(sampleRequest, 'test-key', 'gemini-3.8-flash', {
+        overallTimeoutMs: 25000,
         maxRetries: 1,
-      })
-    ).rejects.toThrow();
+      });
 
-    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+      // Assert that retry was executed and succeeded
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+      expect(plan.isAiGenerated).toBe(true);
+      expect(plan.planTitle).toBe('7-Day Linear Algebra Mastery Plan');
+    } finally {
+      dateSpy.mockRestore();
+    }
   });
 });
